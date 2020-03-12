@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys, os, time, random
 import binascii
 file=sys.argv[1]
