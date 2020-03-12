@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys, os, time, random
-import binascii
 file=sys.argv[1]
 
 if len(sys.argv) > 2:
@@ -17,9 +16,9 @@ if ret != 'yes':
     exit(10)
 
 size = os.stat(file).st_size
-amount = int(size*rate)
+amount = int(size*rate*8)
 
-print('File size is {}, corrupting {} bytes:'.format(size, amount))
+print('File size is {} bits, corrupting {} bits:'.format(size*8, amount))
 time.sleep(1)
 
 random.seed()
@@ -28,14 +27,19 @@ with open(file,'rb+') as f:
         if (x % max(1,int(amount/100))) == 0:
             print('{}%'.format(round(float(x)/amount*100,2)))
         seek = random.randrange(size)
-        if sys.version_info[0] < 3:
-            byte = chr(random.randint(0,255))
+
+        f.seek(seek)
+        readbyte = ord(f.read(1))
+        bit = 2**random.randint(0,7)
+        if readbyte & bit:
+            byte = readbyte - bit
         else:
-            byte = bytes([random.randint(0,255)])
+            byte = readbyte + bit
+
+        print('Seek: {}, change {:02x} to {:02x}'.format(seek,readbyte,byte))
         f.seek(seek)
-        readbyte = f.read(1)
-        print('Seeking to {}, converting {} to {}'.format(seek,binascii.hexlify(readbyte).decode(),
-                                                                  binascii.hexlify(byte).decode()))
-        f.seek(seek)
-        f.write(byte)
+        if sys.version_info[0] < 3:
+            f.write(chr(byte))
+        else:
+            f.write(bytes([byte]))
 print('Done!')
